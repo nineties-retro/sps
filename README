@@ -1,0 +1,137 @@
+INTRODUCTION
+   SPS is a Pre-Scheme to (GNU) C compiler written in Pre-Scheme.
+
+   Pre-Scheme is subset of Scheme which uses manual rather than
+   automatic memory management (i.e. no garbage collection) and
+   provides primitives to allow direct access to memory.  As such you
+   could consider it to be a BCPL with a Lisp-like syntax.
+
+   This implementation is not directly related to earlier work of
+   Olivia, Wand, Ramsdell on VLISP PreScheme or Kelsey's Pre-Scheme
+   except in that I knew they existed before I started work on SPS.
+   I'd read Ramsell's paper in 1995 and heard that Scheme48 used
+   Pre-Scheme but I had not seen the code or read Kelsey's paper.
+   Thus SPS is not a reaction against or an attempt to improve on
+   either of those Pre-Scheme implementations, rather it was done just
+   for the experience.
+
+DESIGN
+   In order to significantly simplify the effort in converting
+   Pre-Scheme to C the compiler takes advantage of GNU C's support for
+   statement expressions i.e. {( ... )}.  This could be looked as a
+   cheat but see below for why it was important to be able to get the
+   point of being able to self-compile as quickly as possible.
+
+   To facilitate bootstrapping the compiler, there is a Scheme
+   compatibility layer which allows the Pre-Scheme compiler to
+   be loaded into a Scheme interpreter.  For historical reasons the
+   only supported/tested Scheme interpreter is Aubry Jaffer's scm.
+   
+   This bootstrap requirement is why the code contains some unusual
+   features/abstractions.
+
+HISTORY
+   Implementation of SPS started on 1999-01-24 and stopped on
+   1999-03-08 in approximately the state you see here when it reached
+   proof-of-concept stage where it could compile itself.
+
+   The only changes since that date were on 2013-11-22 to update the
+   scm bootstrap code from 1994 vintage scm to a 2006 vintage scm and
+   add this README and a LICENSE.
+
+   Development was mostly done on a 486 DX2-66 under Linux and near
+   the end temporarily switched to a Pentium running Windows NT.  That
+   was because the bootstrap stage -- using scm to run the Pre-Scheme
+   compiler on itself to produce a C version of the compiler -- would
+   take around 2 minutes 20 seconds on the 486.  Thus the faster
+   Pentium was welcome anytime it was necessary to re-bootstrap
+   i.e. when changes were made that could not be accepted by the
+   stage1 compiler.
+
+   Technology has moved on to the point where on 1.66 GHz Intel Core 2
+   the same bootstrap process only takes 7 seconds :-
+
+      $ grep "model name" /proc/cpuinfo
+      model name	: Intel(R) Core(TM)2 CPU         T5500  @ 1.66GHz
+      model name	: Intel(R) Core(TM)2 CPU         T5500  @ 1.66GHz
+      $ time make bootstrap.c
+      Creating pre-scheme-compiler.scm
+      Converting pre-scheme-compiler.scm to bootstrap.c
+      #<unspecified>
+
+      real	0m6.798s
+      user	0m6.680s
+      sys	0m0.064s
+      $ 
+
+
+BUILD
+   To build the compiler do :-
+
+      $ make stage2
+
+   Assuming you have Aubry Jaffer's scm and GCC installed then you
+   will notice a lot of warnings from GCC about pointer/integer casts.
+   While annoying, they do not cause the compilation to fail so you
+   can ignore them.
+
+   There is one sample program other than the Pre-Scheme compiler
+   itself, you can guess what it does :-
+
+      $ make hello
+      $ ./hello
+      Hello World!
+      $ 
+
+TODO
+   * The most basic thing is to add enough casts to the C code
+     generation to keep gcc quiet.
+
+   * Find and fix the bug that triggers "could not open ast" if
+     compiled with -O3.
+
+   * Remove the requirement to type the name of the generated pre-amble file.
+
+   * Remove the 32-bit depencency that :-
+
+        sizeof(unsigned int) == sizeof(void *)
+
+     This is straightforward: change the type of sps_val to intptr_t,
+     change bytes-per-word definition and update the format in any
+     code that prints out an sps_val.
+
+   * After that the goals become much larger such as remove the
+     dependence on GCC statement as expressions, write a backend for
+     LLVM, ... etc.
+
+BIBLIOGRAPHY
+   Compilers Principles, Techniques, and Tools
+   Alfred V. Aho and Ravi Sethi and Jeffrey D. Ullman
+   Addison Wesley, 1986
+
+   BCPL -- the language and its compiler
+   Martin Richards and Colin Whitby-Strevens
+   Cambridge University Press 1980
+
+   A Verified Compiler for Pure PreScheme
+   Dino P. Oliva and Mitchell Wand
+   MIRE 1991
+   http://repository.readscheme.org/ftp/papers/vlisp/pureprescheme.pdf
+
+   The Revised VLISP PreScheme Front End
+   John D. Ramsdell
+   MITRE August 1993
+   http://repository.readscheme.org/ftp/papers/vlisp/preschemerevised.pdf
+
+   Design Patterns: Elements of Reusable Object-Oriented Software
+   Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides
+   Addison-Wesley 1995
+
+   Pre-Scheme: A Scheme Dialect for Systems Programming
+   Richard Kelsey
+   NEC Research Institute 1997
+
+AUTHOR
+   Ninetes Retro <nineties-retro@mail.com>
+
+   2b3e7f6d15eb9fb905416ba22d43bd671150f003bd34f7830feb84c5886f7898

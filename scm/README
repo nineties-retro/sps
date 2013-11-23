@@ -1,0 +1,9 @@
+                             -*- Text -*-
+
+Contains Scheme files that support abstractions required by SPS.
+
+Some of the files are scm specific.
+
+If the file has the same name as a file in the parent directory it
+usually means that the file is an alternative (Scheme only)
+implementation of a SPS abstraction.

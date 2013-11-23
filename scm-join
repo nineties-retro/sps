@@ -1,0 +1,16 @@
+#! /bin/sh
+
+# Naff little script to cat up all the source that makes up the Pre-Scheme
+# to GNU C compiler and stuff it in a file called in.scm.
+
+copyit() {
+    sed -e 's/sps:if/if/' -e 's/sps:and/and/' -e 's/sps:or/or/' $1
+}
+
+for file in $@
+do
+    echo "; " $file
+    echo
+    copyit $file
+    echo
+done

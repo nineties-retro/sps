@@ -1,0 +1,81 @@
+;
+; Loads all the required files that make up the Pre-Scheme to GNU C compiler
+; into scm and runs the compiler on the file pre-scheme-compiler.scm.
+;
+(load "scm/sps-if.scm")
+(load "scm/sps-assert.scm")
+(load "scm/sps-byte-vector.scm")
+(load "sps-byte-vector.scm")
+(load "scm/sps-strings-scm.scm")
+;;(load "scm/sps-strings-sps.scm")
+
+;(load "sps/sps-word.scm")
+;(load "sps/sps-compat.scm")
+;(load "sps/sps-io.scm")
+;(load "sps/sps-mem.scm")
+;(load "sps/sps-mem-fsp.scm")
+;(load "sps/sps-mem-sp.scm")
+
+(load "scm/sps-word.scm")
+(load "scm/sps-compat.scm")
+(load "scm/sps-io.scm")
+(load "scm/sps-mem.scm")
+(load "scm/sps-mem-fsp.scm")
+(load "scm/sps-mem-sp.scm")
+
+(load "sps-char-map.scm")
+(load "sps-input.scm")
+(define *pools* (sps:mem:pools:open))
+(define *sp* (sps:mem:sp:open *pools*))
+;(define *sp-alloc* (sps:mem:pool:alloc sps:mem:sp:ops))
+;(define *sp-free* (sps:mem:pool:free sps:mem:sp:ops))
+;(define *sp-close* (sps:mem:pool:close sps:mem:sp:ops))
+
+(load "sps-input-file.scm")
+(define *input-file-name* (sps:static-string "pre-scheme-compiler.scm"))
+(define *input-file* (sps:make-static-vector sps:input:file:size))
+(define *input-ok* (sps:input:file:open *input-file* *input-file-name* 
+                                        *sp* sps:mem:sp:ops))
+(load "sps-lexer-action.scm")
+(load "sps-lexer-error.scm")
+(load "sps-lexer.scm")
+;(load "sps-pp.scm")
+;(load "sps-pp-direct.scm")
+(define *lexer* (sps:make-static-vector sps:lexer:size))
+
+;;(sps:lexer:open *lexer* *input-file* sps:input:file:ops sps:pp::errors)
+;;(sps:lexer:lex *lexer* sps:pp::actions #t)
+
+(load "sps-strings-scm.scm")
+;;(load "sps-strings-sps.scm")
+(load "sps-hash.scm")
+(load "sps-hash-table.scm")
+(define *hash-table* (sps:make-static-vector sps:hash-table:size))
+(define *hash-table-ok* (sps:hash-table:open *hash-table* *pools*))
+
+(load "sps-ast.scm")
+(define *ast* (sps:make-static-vector sps:ast::state:size))
+(define *ast-ok* (sps:ast::state-open *ast* *pools* *hash-table*))
+(sps:lexer:open *lexer* *input-file* sps:input:file:ops sps:ast::errors)
+;;(load "sps-ast-pp.scm")
+;;(sps:ast-pp (sps:ast::state:root (sps:ast *lexer* *ast*)) 0)
+
+(load "sps-symbol-table.scm")
+(define *symbol-table* (sps:make-static-vector sps:symbol-table:size))
+(sps:symbol-table:open *symbol-table* *pools*)
+(define *preamble-file-name* (sps:static-string "bootstrap_preamble.c"))
+(define *main-file-name* (sps:static-string "bootstrap.c"))
+(define *preamble-port* (sps:io:open-output *preamble-file-name*))
+(define *main-port* (sps:io:open-output *main-file-name*))
+(load "sps-to-c.scm")
+(sps:io:print:string *main-port* "#include \"sps_prelude.h\"\n")
+(sps:io:print:string *main-port* "#include \"bootstrap_preamble.c\"\n")
+(define *sps->c* (sps:make-static-vector sps->c:state:size))
+(define *sp->c-ok* (sps->c:state:open *sps->c* *pools* *hash-table*
+                                      *symbol-table*
+                                      *main-port* *preamble-port*))
+(define *ast-ok* (sps:ast *lexer* *ast*))
+(sps:or *ast-ok* (begin (display "problem building AST") (newline)))
+(sps->c *sps->c* (sps:ast::state:root *ast*))
+(close-port *main-port*)
+(close-port *preamble-port*)
